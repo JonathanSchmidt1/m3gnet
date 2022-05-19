@@ -2,18 +2,18 @@
 M3GNet potential trainer
 """
 from typing import List, Optional
-
+import datetime
 import tensorflow as tf
 from ase import Atoms
 from pymatgen.core import Structure, Molecule
-
+import sys
 from m3gnet.callbacks import ManualStop
 from m3gnet.graph import Index
 from m3gnet.graph import MaterialGraph
 from m3gnet.graph import MaterialGraphBatchEnergyForceStress
 from m3gnet.layers import AtomRef
 from m3gnet.models import Potential
-
+import os
 
 class PotentialTrainer:
     """
@@ -27,6 +27,8 @@ class PotentialTrainer:
         """
         self.potential = potential
         self.optimizer = optimizer
+        self.two_d_stress_mask = tf.constant([[1,1,0],[1,1,0],[0,0,0.]])
+
 
     def train(
         self,
@@ -76,7 +78,6 @@ class PotentialTrainer:
             fit_per_element_offset (bool): whether to train an element-wise
                 offset, e.g., elemental energies etc. If trained, such energy
                 will be summed to the neural network predictions.
-
         Returns: None
         """
 
@@ -129,8 +130,18 @@ class PotentialTrainer:
 
         has_stress = stresses is not None
 
+
+        def _flat_loss_stress(x, y):
+            #tf.print('stressssss',x*self._d_stress_mask,x.shape,y.shape,output_stream=sys.stderr)
+            return loss(tf.reshape(x*self.two_d_stress_mask, (-1,)), tf.reshape(y*self.two_d_stress_mask, (-1,)))
+
+
         def _flat_loss(x, y):
             return loss(tf.reshape(x, (-1,)), tf.reshape(y, (-1,)))
+
+        def _mae_stress(x, y):
+            x = tf.reshape(x, tf.shape(y))
+            return tf.reduce_mean(tf.math.abs(x*self.two_d_stress_mask - y*self.two_d_stress_mask))
 
         def _mae(x, y):
             x = tf.reshape(x, tf.shape(y))
@@ -149,8 +160,8 @@ class PotentialTrainer:
             s_loss = 0
             s_metric = 0
             if has_stress:
-                s_loss = _flat_loss(target_batch[2], graph_pred_batch[2])
-                s_metric = _mae(target_batch[2], graph_pred_batch[2])
+                s_loss = _flat_loss_stress(target_batch[2], graph_pred_batch[2])
+                s_metric = _mae_stress(target_batch[2], graph_pred_batch[2])
             return (
                 e_loss + force_loss_ratio * f_loss + stress_loss_ratio * s_loss,
                 e_metric,
@@ -167,9 +178,13 @@ class PotentialTrainer:
             callbacks.append(pbar)
 
         callbacks.append(ManualStop())
+        dir_name = "callbacks/f_t-{date:%Y-%m-%d_%H-%M-%S}".format(
+        date=datetime.datetime.now())
+        print(dir_name)
+        os.mkdir(dir_name)
         if has_validation and save_checkpoint:
             name_temp = (
-                "callbacks/{epoch:05d}-{val_MAE:.6f}-"
+                dir_name + "/{epoch:05d}-{val_MAE:.6f}-"
                 "{val_MAE(E):.6f}-{val_MAE(F):.6f}"
             )
             if has_stress:
@@ -178,7 +193,7 @@ class PotentialTrainer:
                 tf.keras.callbacks.ModelCheckpoint(
                     filepath=name_temp,
                     monitor="val_MAE",
-                    save_weights_only=True,
+                    save_weights_only=False,
                     save_best_only=True,
                     mode="min",
                 )

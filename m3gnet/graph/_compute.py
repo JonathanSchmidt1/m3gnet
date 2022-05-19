@@ -7,13 +7,13 @@ from typing import List, Optional, Union
 
 import numpy as np
 import tensorflow as tf
-
+import pyximport
+pyximport.install()
 from m3gnet.config import DataType
 from m3gnet.utils import get_length, get_segment_indices_from_n
-
-from ._threebody_indices import compute_threebody as _compute_threebody
 from ._types import Index, MaterialGraph
 
+from ._threebody_indices import compute_threebody as _compute_threebody
 
 def get_pair_vector_from_graph(graph: List):
     """

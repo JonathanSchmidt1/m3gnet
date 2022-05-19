@@ -127,6 +127,7 @@ class RadiusCutoffGraphConverter(BaseGraphConverter):
         cutoff: float = 5.0,
         has_threebody: bool = True,
         threebody_cutoff: Optional[float] = None,
+        pbc: np.array = np.array([1, 1, 1], dtype=int),
         **kwargs,
     ):
         """
@@ -140,7 +141,7 @@ class RadiusCutoffGraphConverter(BaseGraphConverter):
         """
         self.cutoff = cutoff
         self.has_threebody = has_threebody
-
+        self.pbc = pbc
         if has_threebody:
             if threebody_cutoff is None:
                 threebody_cutoff = cutoff - 1.0
@@ -168,11 +169,12 @@ class RadiusCutoffGraphConverter(BaseGraphConverter):
         state_attributes = self.get_states(structure)
 
         sender_indices, receiver_indices, images, distances = get_fixed_radius_bonding(
-            structure, self.cutoff
+            structure, self.cutoff, pbc = self.pbc
         )
 
         if np.size(np.unique(sender_indices)) < len(structure):
-            logger.warning("Isolated atoms found in the structure")
+            raise ValueError("Isolated Atoms found in the structure")
+            #logger.warning("Isolated atoms found in the structure")
 
         bonds = distances[:, None]
         bond_atom_indices = np.array(

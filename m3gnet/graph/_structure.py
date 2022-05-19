@@ -14,7 +14,7 @@ from m3gnet.type import StructureOrMolecule
 
 
 def get_fixed_radius_bonding(
-    structure: StructureOrMolecule, cutoff: float = 5.0, numerical_tol: float = 1e-8
+    structure: StructureOrMolecule, cutoff: float = 5.0, numerical_tol: float = 1e-8, pbc = np.array([1, 1, 1], dtype=int)
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Get graph representations from structure within cutoff
@@ -26,11 +26,14 @@ def get_fixed_radius_bonding(
     Returns:
         center_indices, neighbor_indices, images, distances
     """
+    dir_idx = 2 #non-periodic in z direction
     if isinstance(structure, Structure):
         lattice_matrix = np.ascontiguousarray(
             np.array(structure.lattice.matrix), dtype=float
         )
-        pbc = np.array([1, 1, 1], dtype=int)
+        if pbc[dir_idx]==0:
+            lattice_matrix[dir_idx][dir_idx]=1000.
+        #pbc = np.array([1, 1, 1], dtype=int)
         cart_coords = np.ascontiguousarray(np.array(structure.cart_coords), dtype=float)
     elif isinstance(structure, Molecule):
         lattice_matrix = np.array(
@@ -40,7 +43,7 @@ def get_fixed_radius_bonding(
         cart_coords = np.ascontiguousarray(np.array(structure.cart_coords), dtype=float)
 
     elif isinstance(structure, Atoms):
-        pbc = np.array(structure.pbc, dtype=int)
+        #pbc = np.array(structure.pbc, dtype=int)
         if np.all(pbc < 0.1):
             lattice_matrix = np.array(
                 [[1000.0, 0.0, 0.0], [0.0, 1000.0, 0.0], [0.0, 0.0, 1000.0]],
@@ -48,7 +51,8 @@ def get_fixed_radius_bonding(
             )
         else:
             lattice_matrix = np.ascontiguousarray(structure.cell[:], dtype=float)
-
+        if pbc[dir_idx]==0:
+            lattice_matrix[dir_idx][dir_idx]=1000.
         cart_coords = np.ascontiguousarray(np.array(structure.positions), dtype=float)
 
     else:

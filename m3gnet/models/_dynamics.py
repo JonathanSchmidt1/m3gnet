@@ -92,6 +92,7 @@ class M3GNetCalculator(Calculator):
         results = self.potential.get_efs_tensor(
             graph_list, include_stresses=self.compute_stress
         )
+        #print(results)
         self.results.update(
             energy=results[0].numpy().ravel(),
             free_energy=results[0].numpy().ravel(),

@@ -45,6 +45,7 @@ class M3GNet(GraphModelMixin, tf.keras.models.Model):
         max_l: int = 3,
         n_blocks: int = 3,
         units: int = 64,
+        pbc: np.array = np.array([1, 1, 1], dtype=int),
         cutoff: float = 5.0,
         threebody_cutoff: float = 4.0,
         n_atom_types: int = 94,
@@ -80,7 +81,7 @@ class M3GNet(GraphModelMixin, tf.keras.models.Model):
         """
         super().__init__(**kwargs)
         self.graph_converter = RadiusCutoffGraphConverter(
-            cutoff=cutoff, threebody_cutoff=threebody_cutoff
+            cutoff=cutoff, threebody_cutoff=threebody_cutoff, pbc=pbc
         )
 
         if include_states:
@@ -256,6 +257,7 @@ class M3GNet(GraphModelMixin, tf.keras.models.Model):
                 "mean": self.mean,
                 "std": self.std,
                 "element_refs": self.element_refs,
+                "pbc": self.pbc,
             }
         )
         return config
