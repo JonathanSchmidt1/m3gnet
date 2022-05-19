@@ -56,6 +56,7 @@ class M3GNet(GraphModelMixin, tf.keras.models.Model):
         mean: float = 0.0,
         std: float = 1.0,
         element_refs: Optional[np.ndarray] = None,
+        training: bool = False,
         **kwargs,
     ):
         r"""
@@ -64,6 +65,7 @@ class M3GNet(GraphModelMixin, tf.keras.models.Model):
             max_l (int): number of angular expansion
             n_blocks (int): number of convolution blocks
             units (int): number of neurons in each MLP layer
+            pbc (np.array): periodic boundary conditions
             cutoff (float): cutoff radius of the graph
             threebody_cutoff (float): cutoff radius for 3 body interaction
             n_atom_types (int): number of atom types
@@ -77,13 +79,14 @@ class M3GNet(GraphModelMixin, tf.keras.models.Model):
             std (float): optional `std` of the target
             element_refs (np.ndarray): element reference values for each
                 element
+            training (bool): whether the model is in training mode
             **kwargs:
         """
         super().__init__(**kwargs)
         self.graph_converter = RadiusCutoffGraphConverter(
-            cutoff=cutoff, threebody_cutoff=threebody_cutoff, pbc=pbc
+            cutoff=cutoff, threebody_cutoff=threebody_cutoff, pbc=pbc, training=training
         )
-
+        self.pbc = pbc
         if include_states:
             self.graph_converter.set_default_states(
                 np.array([[0.0, 0.0]], dtype="float32")
@@ -272,7 +275,7 @@ class M3GNet(GraphModelMixin, tf.keras.models.Model):
         """
         return cls(**config)
 
-    def save(self, dirname: str):
+    def save(self, dirname: str,overwrite=True,options=[]):
         """
         Save the model to a directory
         Args:

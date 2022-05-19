@@ -91,7 +91,6 @@ class BasePotential(tf.keras.Model, ABC):
     """
     Potential abstract class
     """
-
     def get_energies(self, graph: List):
         """
         Compute the energy of a MaterialGraph
@@ -203,7 +202,9 @@ class BasePotential(tf.keras.Model, ABC):
             stresses = (
                 1 / volume[:, None, None] * derivatives["stresses"] * 160.21766208
             )
-            stresses = tf.cast(tf.convert_to_tensor(stresses), DataType.tf_float)
+            stresses = tf.cast(tf.convert_to_tensor(stresses), DataType.tf_float) * \
+                       tf.constant([[1, 1, 0], [1, 1, 0], [0, 0, 0.]]) #2D mask for stress
+            print(stresses)
             results += (stresses,)
         return results
 
