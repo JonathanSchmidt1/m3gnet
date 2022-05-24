@@ -53,7 +53,7 @@ cython==0.29.26
 `m3gnet` can be installed via source code installation by cloning the code from github
 
 ```
-git clone https://github.com/materialsvirtuallab/m3gnet.git
+git clone git@github.com:JonathanSchmidt1/m3gnet.git
 cd m3gnet
 pip install -r requirements.txt
 python setup.py install
